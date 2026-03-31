@@ -28,7 +28,7 @@ def get_datasets(tokenizer):
         )
 
     tokenized = raw.map(tokenize, batched=True)
-    tokenized = tokenized.rename_column("label", "label")
+
     tokenized.set_format("torch", columns=["input_ids", "attention_mask", "label"])
 
     # IMDb has no official val split — carve 10% from train
