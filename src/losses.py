@@ -1,5 +1,7 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
+
 
 def response_kd_loss(student_logits, teacher_logits, temperature=4.0):
     """
@@ -13,7 +15,16 @@ def response_kd_loss(student_logits, teacher_logits, temperature=4.0):
     Returns:
         scalar loss
     """
-    raise NotImplementedError  # YOU implement this
+    # Step 1 — soften both distributions with temperature
+    student_soft = F.log_softmax(student_logits / temperature, dim=-1)
+    teacher_soft = F.softmax(teacher_logits    / temperature, dim=-1)
+
+    # Step 2 — KL divergence: measures how far student is from teacher
+    # F.kl_div expects (log_probs, probs) — reduction='batchmean' is the correct setting
+    kl = F.kl_div(student_soft, teacher_soft, reduction="batchmean")
+
+    # Step 3 — rescale by T² to restore gradient magnitude
+    return kl * (temperature ** 2)
 
 def feature_kd_loss(student_attentions, teacher_attentions):
     """
