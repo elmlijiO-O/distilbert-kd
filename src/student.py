@@ -27,35 +27,33 @@ class StudentModel(nn.Module):
         self.num_heads = num_heads
         self.max_length = max_length
 
-    def forward(self, input_ids, attention_mask):
-        batch_size, seq_len = input_ids.shape
+        def forward(self, input_ids, attention_mask):
+            batch_size, seq_len = input_ids.shape
 
-        # Build position indices [0, 1, 2, ..., seq_len-1] for each item in batch
-        positions = torch.arange(seq_len, device=input_ids.device)
-        positions = positions.unsqueeze(0).expand(batch_size, -1)  # [batch, seq_len]
+            # Build position indices [0, 1, 2, ..., seq_len-1] for each item in batch
+            positions = torch.arange(seq_len, device=input_ids.device)
+            positions = positions.unsqueeze(0).expand(batch_size, -1)  # [batch, seq_len]
 
-        # Combine token embeddings + position embeddings
-        x = self.embedding(input_ids) + self.position_embedding(positions)
+            # Combine token embeddings + position embeddings
+            x = self.embedding(input_ids) + self.position_embedding(positions)
 
-        # Convert attention_mask for PyTorch: it expects True where tokens should be IGNORED
-        # Our mask has 1=real token, 0=padding → invert it
-        key_padding_mask = (attention_mask == 0)
+            # Convert attention_mask for PyTorch: it expects True where tokens should be IGNORED
+            # Our mask has 1=real token, 0=padding → invert it
+            key_padding_mask = (attention_mask == 0)
 
-        # Run through transformer layers, collecting attention weights per layer
-        attentions = []
-        for layer in self.transformer.layers:
-            # get_attention_weights lets us extract the attention maps
-            x, attn_weights = layer.self_attn(
-                x, x, x,
-                key_padding_mask=key_padding_mask,
-                need_weights=True,
-                average_attn_weights=False  # keep all heads: [batch, heads, seq, seq]
-            )
-            attentions.append(attn_weights)
-            # run the rest of the layer (feedforward, norms)
-            x = layer.norm1(x)
-            x = layer.norm2(layer.linear2(layer.dropout(layer.activation(layer.linear1(x)))))
-
+            # Run through transformer layers, collecting attention weights per layer
+            attentions = []
+            for layer in self.transformer.layers:
+                attn_output, attn_weights = layer.self_attn(
+                    x, x, x,
+                    key_padding_mask=key_padding_mask,
+                    need_weights=True,
+                    average_attn_weights=False
+                )
+                attentions.append(attn_weights)
+                x = layer.norm1(x + layer.dropout1(attn_output))   # dropout on attention output
+                ffn_output = layer.linear2(layer.dropout(layer.activation(layer.linear1(x))))
+                x = layer.norm2(x + layer.dropout2(ffn_output))    # dropout on ffn output
         # Take the [CLS] token (position 0) as the sentence representation
         cls_output = x[:, 0, :]  # [batch, hidden_size]
 
