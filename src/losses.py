@@ -38,7 +38,22 @@ def feature_kd_loss(student_attentions, teacher_attentions):
 
     Returns:
         scalar loss
+
     """
+    mapped_teacher = [teacher_attentions[2], teacher_attentions[6], teacher_attentions[10]]
+    total_loss = 0
+
+    for i in range(3):
+        s =  student_attentions[i]
+        t = mapped_teacher[i]
+
+        s = s.mean(dim=1)
+        t = t.mean(dim=1)   
+
+
+        # Compute MSE for this layer
+        total_loss += F.mse_loss(s, t)
+    return total_loss / 3  # average over the 3 layers
     raise NotImplementedError  # PARTNER implements this
 
 def combined_loss(ce_loss, kd_loss, feat_loss, alpha=0.5, beta=0.3, gamma=0.2):

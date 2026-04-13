@@ -1,0 +1,29 @@
+model:
+  teacher_name: "bert-base-uncased"
+  student_layers: 3
+  hidden_size: 256
+  num_heads: 4
+  num_labels: 2
+  max_length: 128
+  vocab_size: 30522
+
+training:
+  batch_size: 32
+  learning_rate: 2e-5
+  epochs: 3
+  temperature: 4.0
+  alpha: 0.5
+  beta: 0.3
+  gamma: 0.2
+
+data:
+  dataset_name: "imdb"
+  max_length: 128
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+
+checkpoints:
+  teacher: "checkpoints/teacher_best.pt"
+  student: "checkpoints/student_best.pt"
