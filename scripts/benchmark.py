@@ -63,13 +63,8 @@ def compare_speed():
     print(f"Speedup              : {teacher_ms / student_ms:.1f}x faster")
 
 # api throughput
-
-def measure_throughput(num_requests=100):
-    print("=" * 40)
-    print("API THROUGHPUT")
-    print("=" * 40)
-
-    url     = "http://localhost:8000/predict"
+def measure_throughput(url, num_requests=100):
+    print(f"Benchmarking {url}")
     payload = {"text": "This movie was absolutely fantastic!"}
 
     start = time.time()
@@ -77,17 +72,17 @@ def measure_throughput(num_requests=100):
         requests.post(url, json=payload)
     end = time.time()
 
-    total_time    = end - start
-    throughput    = num_requests / total_time
+    total_time = end - start
+    throughput = num_requests / total_time
+    print(f"  Total time  : {total_time:.2f}s")
+    print(f"  Throughput  : {throughput:.1f} requests/sec")
+    return throughput
 
-    print(f"Total time for {num_requests} requests : {total_time:.2f}s")
-    print(f"Throughput                        : {throughput:.1f} requests/sec")
-
-#main
-
+# then in __main__:
 if __name__ == "__main__":
     compare_size()
     print()
     compare_speed()
     print()
-    measure_throughput()
+    measure_throughput("http://localhost:8001/predict")  # teacher
+    measure_throughput("http://localhost:8000/predict")  # student

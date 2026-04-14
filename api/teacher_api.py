@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from fastapi import FastAPI
-from src.student import StudentModel
+from src.teacher import TeacherModel
 from src.data import get_tokenizer
 from api.schemas import PredictRequest, PredictResponse
 
@@ -9,15 +9,14 @@ app = FastAPI()
 
 # Load once on startup
 tokenizer = get_tokenizer()
-model = StudentModel()
+model = TeacherModel()
 
-checkpoint = torch.load("checkpoints/student_kd_best.pt", map_location="cpu")
+checkpoint = torch.load("checkpoints/teacher_best.pt", map_location="cpu")
 model.load_state_dict(checkpoint["model_state"])
 model.eval()
 
 
 @app.post("/predict", response_model=PredictResponse)
-
 def predict(request: PredictRequest):
     # Step 1: tokenize
     inputs = tokenizer(
@@ -25,14 +24,14 @@ def predict(request: PredictRequest):
         return_tensors="pt",
         padding="max_length",
         truncation=True,
-        max_length=128
+        max_length=128,
     )
 
     # Step 2: run through model
     with torch.no_grad():
         output = model(
             input_ids=inputs["input_ids"],
-            attention_mask=inputs["attention_mask"]
+            attention_mask=inputs["attention_mask"],
         )
 
     # Step 3: logits → probabilities → label
@@ -44,5 +43,5 @@ def predict(request: PredictRequest):
     return PredictResponse(
         label=label,
         confidence=round(confidence.item(), 4),
-        model="student"
+        model="teacher",
     )
